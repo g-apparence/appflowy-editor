@@ -363,9 +363,10 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
         applyHeightToLastDescent:
             textStyleConfiguration.applyHeightToLastDescent,
       ),
-      text: widget.textSpanDecorator != null
-          ? widget.textSpanDecorator!(textSpan)
-          : textSpan,
+      // text: widget.textSpanDecorator != null
+      //     ? widget.textSpanDecorator!(textSpan)
+      //     : textSpan,
+      text: textSpan,
       textDirection: textDirection(),
       textScaler:
           TextScaler.linear(widget.editorState.editorStyle.textScaleFactor),
@@ -517,6 +518,7 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
       offset += textInsert.length;
     }
     return TextSpan(
+      style: textStyleConfiguration.text,
       children: textSpans,
     );
   }

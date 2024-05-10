@@ -207,9 +207,14 @@ class DocumentMarkdownDecoder extends Converter<String, Document> {
       return codeBlockNodeFromMarkdown(line, decoder);
     } else if (imageRegex.hasMatch(line.trim())) {
       final filePath = extractImagePath(line.trim());
+      if (filePath == null) {
+        return paragraphNode(text: line.trim());
+      }
+      var uri = Uri.parse(filePath);
+      var fileExtension = p.extension(uri.path);
+
       // checking if filepath is present or if the filepath is an image or not
-      if (filePath == null ||
-          !['.png', '.jpg', 'jpeg'].contains(p.extension(filePath))) {
+      if (!['.png', '.jpg', 'jpeg'].contains(fileExtension)) {
         return paragraphNode(text: line.trim());
       }
       return imageNode(url: filePath);
@@ -223,7 +228,7 @@ class DocumentMarkdownDecoder extends Converter<String, Document> {
       return numberedListNode(
         attributes: {
           'delta':
-              decoder.convert(line.substring(line.indexOf('.') + 2)).toJson(),
+              decoder.convert(line.substring(line.indexOf('.') + 1)).toJson(),
         },
       );
     }
