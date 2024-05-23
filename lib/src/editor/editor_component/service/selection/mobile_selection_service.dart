@@ -387,6 +387,9 @@ class _MobileSelectionServiceWidgetState
     final selection = editorState.selection;
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      if(!mounted) {
+        return;
+      }
       selectionNotifierAfterLayout.value = selection;
     });
 
@@ -400,6 +403,9 @@ class _MobileSelectionServiceWidgetState
         // updates selection area.
         Log.selection.debug('update cursor area, $selection');
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+          if(!mounted) {
+            return;
+          }   
           selectionRects.clear();
           _clearSelection();
           _updateSelectionAreas(selection);

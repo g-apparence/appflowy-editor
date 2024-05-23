@@ -44,6 +44,9 @@ Future<void> onFloatingCursorUpdate(
       );
       break;
     case FloatingCursorDragState.Update:
+      if(_cursorOffset == null || point.offset == null) {
+        return;
+      }
       disableMagnifier = true;
       selectionService.onPanUpdate(
         DragUpdateDetails(
