@@ -373,7 +373,10 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
             textStyleConfiguration.applyHeightToLastDescent,
         leadingDistribution: textStyleConfiguration.leadingDistribution,
       ),
-      text: textSpan,
+      text: widget.textSpanDecorator != null
+          ? widget.textSpanDecorator!(textSpan)
+          : textSpan,
+      // text: textSpan,
       textDirection: textDirection(),
       textScaler:
           TextScaler.linear(widget.editorState.editorStyle.textScaleFactor),
@@ -537,6 +540,9 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
         if (attributes.autoComplete == true) {
           textStyle = textStyle.combine(textStyleConfiguration.autoComplete);
         }
+        if (attributes.height != null) {
+          textStyle = textStyle.copyWith(height: attributes.height);
+        }
         if (attributes.transparent == true) {
           textStyle = textStyle.combine(
             const TextStyle(color: Colors.transparent),
@@ -667,6 +673,13 @@ extension AppFlowyRichTextAttributes on Attributes {
   double? get fontSize {
     if (this[AppFlowyRichTextKeys.fontSize] is double) {
       return this[AppFlowyRichTextKeys.fontSize];
+    }
+    return null;
+  }
+
+  double? get height {
+    if (this[AppFlowyRichTextKeys.height] is double) {
+      return this[AppFlowyRichTextKeys.height];
     }
     return null;
   }

@@ -12,6 +12,7 @@ class AppFlowyRichTextKeys {
   static String fontSize = 'font_size';
   static String autoComplete = 'auto_complete';
   static String transparent = 'transparent';
+  static String height = 'height';
 
   static List<String> supportSliced = [
     bold,
