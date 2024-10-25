@@ -26,6 +26,7 @@ class DocumentMarkdownDecoder extends Converter<String, Document> {
     ).parse(input);
 
     final document = Document.blank();
+    // final nodes = _parseRootNode([], mdNodes, 0);
     final nodes = mdNodes
         .map((e) => _parseNode(e))
         .whereNotNull()
@@ -38,18 +39,40 @@ class DocumentMarkdownDecoder extends Converter<String, Document> {
     return document;
   }
 
+  List<Node> _parseRootNode(
+    List<Node> res,
+    List<md.Node> initialList,
+    int index,
+  ) {
+    if (index >= initialList.length) {
+      return res;
+    }
+    List<Node> tmpRes = [];
+    final mdNode = initialList[index];
+    if (mdNode is! md.Element) {
+      tmpRes.addAll(_parseNode(mdNode));
+    } else {
+      for (final child in mdNode.children!) {
+        tmpRes.addAll(_parseNode(child));
+      }
+    }
+    res.addAll(tmpRes);
+    return _parseRootNode(res, initialList, index + 1);
+  }
+
   // handle node itself and its children
   List<Node> _parseNode(md.Node mdNode) {
     List<Node> nodes = [];
 
     for (final parser in markdownElementParsers) {
-      nodes = parser.transform(
+      List<Node> nodeWithChildren = [];
+      nodeWithChildren = parser.transform(
         mdNode,
         markdownElementParsers,
       );
 
-      if (nodes.isNotEmpty) {
-        break;
+      if (nodeWithChildren.isNotEmpty) {
+        nodes = [...nodes, ...nodeWithChildren];
       }
     }
 

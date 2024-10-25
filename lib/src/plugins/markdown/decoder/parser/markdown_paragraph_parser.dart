@@ -39,11 +39,14 @@ class MarkdownParagraphParserV2 extends CustomMarkdownParser {
     final splitContent = _splitByBrTag(ec);
 
     // Transform each split content into a paragraph node
-    return splitContent.map((content) {
+    final result = splitContent.map((content) {
       final deltaDecoder = DeltaMarkdownDecoder();
       final delta = deltaDecoder.convertNodes(content);
       return paragraphNode(delta: delta);
     }).toList();
+
+    result.add(paragraphNode());
+    return result;
   }
 }
 
@@ -70,6 +73,7 @@ List<List<md.Node>> _splitByBrTag(List<md.Node> nodes) {
           } else {
             acc.last.add(node);
           }
+          acc.add([]);
           return acc;
         },
       )

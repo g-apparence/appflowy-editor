@@ -14,19 +14,32 @@ class MarkdownImageParserV2 extends CustomMarkdownParser {
     if (element is! md.Element) {
       return [];
     }
-
-    if (element.children?.length != 1 ||
-        element.children?.first is! md.Element) {
-      return [];
+    List<Node> results = [];
+    final imgNode = tranformElement(element);
+    if(imgNode != null) {
+      results.add(imgNode);
     }
-
-    final ec = element.children?.first as md.Element;
-    if (ec.tag != 'img' || ec.attributes['src'] == null) {
-      return [];
+    for (final child in element.children!) {
+      final node = tranformElement(child);
+      if(node != null) {
+        results.add(node);
+      }
     }
+    return results;
+  }
 
-    return [
-      imageNode(url: ec.attributes['src']!),
-    ];
+  Node? tranformElement(md.Node element) {
+    if (element is! md.Element) {
+      return null;
+    }
+    if (element.tag != 'img' || element.attributes['src'] == null) {
+      return null;
+    }
+    // temporary for firebase images
+    final url = element.attributes['src']!.replaceFirstMapped(
+      RegExp('(/o/)(.*)'),
+      (match) => '${match[1]}${match[2]?.replaceAll('/', '%2F')}',
+    );
+    return imageNode(url: url);
   }
 }
