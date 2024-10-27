@@ -15,12 +15,15 @@ class MarkdownImageParserV2 extends CustomMarkdownParser {
       return [];
     }
     List<Node> results = [];
-    final imgNode = tranformElement(element);
+    final imgNode = parseNodeImage(element);
     if(imgNode != null) {
       results.add(imgNode);
     }
+    if(element.children == null) {
+      return results;
+    }
     for (final child in element.children!) {
-      final node = tranformElement(child);
+      final node = parseNodeImage(child);
       if(node != null) {
         results.add(node);
       }
@@ -28,18 +31,19 @@ class MarkdownImageParserV2 extends CustomMarkdownParser {
     return results;
   }
 
-  Node? tranformElement(md.Node element) {
-    if (element is! md.Element) {
-      return null;
-    }
-    if (element.tag != 'img' || element.attributes['src'] == null) {
-      return null;
-    }
-    // temporary for firebase images
-    final url = element.attributes['src']!.replaceFirstMapped(
-      RegExp('(/o/)(.*)'),
-      (match) => '${match[1]}${match[2]?.replaceAll('/', '%2F')}',
-    );
-    return imageNode(url: url);
+}
+
+Node? parseNodeImage(md.Node element) {
+  if (element is! md.Element) {
+    return null;
   }
+  if (element.tag != 'img' || element.attributes['src'] == null) {
+    return null;
+  }
+  // temporary for firebase images
+  final url = element.attributes['src']!.replaceFirstMapped(
+    RegExp('(/o/)(.*)'),
+    (match) => '${match[1]}${match[2]?.replaceAll('/', '%2F')}',
+  );
+  return imageNode(url: url);
 }

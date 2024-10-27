@@ -39,11 +39,30 @@ class MarkdownParagraphParserV2 extends CustomMarkdownParser {
     final splitContent = _splitByBrTag(ec);
 
     // Transform each split content into a paragraph node
-    final result = splitContent.map((content) {
-      final deltaDecoder = DeltaMarkdownDecoder();
-      final delta = deltaDecoder.convertNodes(content);
-      return paragraphNode(delta: delta);
+    final resultRows = splitContent.map((content) {
+      return content.map((node) {
+        if (node is md.Element && node.tag == 'img') {
+          final img = parseNodeImage(node);
+          if (img != null) {
+            return img;
+          }
+        }
+        final deltaDecoder = DeltaMarkdownDecoder();
+        final delta = deltaDecoder.convertNodes([node]);
+        return paragraphNode(delta: delta);
+      });
     }).toList();
+
+    final result = resultRows.fold<List<Node>>([], (acc, row) {
+      final notEmptyRow = row.where((el) {
+        if(el.type == ParagraphBlockKeys.type) {
+          return el.delta?.isNotEmpty ?? false;
+        } 
+        return true;
+      });
+      acc.addAll(notEmptyRow);
+      return acc;
+    });
 
     result.add(paragraphNode());
     return result;
@@ -70,10 +89,11 @@ List<List<md.Node>> _splitByBrTag(List<md.Node> nodes) {
         (acc, node) {
           if (node is md.Element && node.tag == 'br') {
             acc.add([]);
+          } else if (node is md.Element && node.tag == 'img') {
+            acc.add([node]);
           } else {
             acc.last.add(node);
           }
-          acc.add([]);
           return acc;
         },
       )
