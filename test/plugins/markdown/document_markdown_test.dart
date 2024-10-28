@@ -28,14 +28,14 @@ void main() {
     });
 
     test('complete markdown with children', () {
-      const markdown = '''
-first line
+      const markdown = '''first line
 second line
 
 textavantimage
 ![](https://example.com/image.png)
 text after image
-      ''';
+
+**texte gras** et *texte italique* et ***texte gras et italique***''';
       final document = markdownToDocument(markdown);
       // expect(document.root.children[0].type, ParagraphBlockKeys.type);s
       // expect(document.root.children[2].type, ImageBlockKeys.type);
@@ -45,26 +45,6 @@ text after image
       // expect(document.root.children[1].delta?.toPlainText(), 'second line');
     });
   });
-
-  test('doc to markdown with children', () {
-      var doc = Document(root: paragraphNode());
-      doc.root.insert(paragraphNode(text: 'first line'));
-      doc.root.insert(paragraphNode(text: 'second line'));
-      doc.root.insert(paragraphNode(text: ''));
-      doc.root.insert(paragraphNode(text: 'textavantimage'));
-      doc.root.insert(imageNode(url: 'https://example.com/image.png'));
-      doc.root.insert(paragraphNode(text: ''));
-      doc.root.insert(paragraphNode(text: 'text after image'));
-      final markdown = documentToMarkdown(doc);
-      print(markdown);
-      // final document = markdownToDocument(markdown);
-      // expect(document.root.children[0].type, ParagraphBlockKeys.type);s
-      // expect(document.root.children[2].type, ImageBlockKeys.type);
-      // final str = documentToMarkdown(document);
-      // expect(str, markdown);
-      // expect(document.root.children[0].delta?.toPlainText(), 'first line');
-      // expect(document.root.children[1].delta?.toPlainText(), 'second line');
-    });
 }
 
 const testDocument = '''{
