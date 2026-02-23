@@ -84,17 +84,21 @@ extension EditorStateSelection on EditorState {
     int end,
     bool Function(Rect rect) compare,
   ) {
-    var min = start;
-    var max = end;
-    while (min <= max) {
-      final mid = min + ((max - min) >> 1);
-      final rect = sortedNodes[mid].rect;
-      if (compare(rect)) {
-        min = mid + 1;
-      } else {
-        max = mid - 1;
+    try {
+      var min = start;
+      var max = end;
+      while (min <= max) {
+        final mid = min + ((max - min) >> 1);
+        final rect = sortedNodes[mid].rect;
+        if (compare(rect)) {
+          min = mid + 1;
+        } else {
+          max = mid - 1;
+        }
       }
+      return min.clamp(start, end);
+    } catch (e) {
+      return start;
     }
-    return min.clamp(start, end);
   }
 }

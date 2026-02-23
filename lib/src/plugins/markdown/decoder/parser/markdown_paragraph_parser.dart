@@ -51,6 +51,7 @@ class MarkdownParagraphParserV2 extends CustomMarkdownParser {
       return paragraphNode(delta: delta);
     }).toList();
 
+    // Add an empty paragraph node if the last content is not a line break
     resultRows.add(paragraphNode());
     return resultRows;
   }

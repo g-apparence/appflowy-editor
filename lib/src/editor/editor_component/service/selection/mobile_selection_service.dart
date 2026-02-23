@@ -358,13 +358,20 @@ class _MobileSelectionServiceWidgetState
     final List<Node> sortedNodes = editorState.getVisibleNodes(
       context.read<EditorScrollController>(),
     );
+    if (sortedNodes.isEmpty) {
+      return null;
+    }
 
-    return editorState.getNodeInOffset(
-      sortedNodes,
-      offset,
-      0,
-      sortedNodes.length - 1,
-    );
+    try {
+      return editorState.getNodeInOffset(
+        sortedNodes,
+        offset,
+        0,
+        sortedNodes.length - 1,
+      );
+    } catch (e) {
+      return null;
+    }
   }
 
   @override

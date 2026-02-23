@@ -80,7 +80,10 @@ class _BlocksMenuState extends State<_BlocksMenu> {
       // Check if current node is list and its type
       final node = widget.editorState.getNodeAtPath(
         widget.selection.start.path,
-      )!;
+      );
+      if (node == null) {
+        return const SizedBox.shrink();
+      }
 
       final isSelected = node.type == list.name &&
           (list.level == null ||
