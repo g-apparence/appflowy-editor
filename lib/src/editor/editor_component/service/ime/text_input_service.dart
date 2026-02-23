@@ -46,4 +46,10 @@ abstract class TextInputService {
 
   /// Closes the editing state of the text currently being edited.
   void close();
+
+  /// Flush any pending debounced deltas immediately.
+  ///
+  /// Call this before reading the document state to ensure it is up-to-date.
+  /// No-op by default; overridden in services that use debouncing.
+  void flushPendingDeltas() {}
 }

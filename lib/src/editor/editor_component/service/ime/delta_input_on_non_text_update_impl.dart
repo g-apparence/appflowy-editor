@@ -70,9 +70,22 @@ Future<void> onNonTextUpdate(
       );
     }
   } else if (PlatformExtension.isIOS) {
-    // on iOS, the cursor movement will trigger the `onFloatingCursor` event.
-    // so we don't need to handle the non-text update here.
+    // On iOS, cursor movement triggers the `onFloatingCursor` event, so we
+    // normally don't handle non-text updates here. However, when composition
+    // ends (e.g. voice dictation stops), we need to update the selection so
+    // that _attachTextInputService is triggered and iOS receives a
+    // setEditingState that acknowledges the committed text.
     AppFlowyEditorLog.input.debug('[iOS] onNonTextUpdate: $nonTextUpdate');
+    if (selection != null && nonTextUpdate.composing == TextRange.empty) {
+      editorState.updateSelectionWithReason(
+        Selection.collapsed(
+          Position(
+            path: selection.start.path,
+            offset: nonTextUpdate.selection.start,
+          ),
+        ),
+      );
+    }
   }
 }
 

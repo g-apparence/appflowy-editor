@@ -70,8 +70,10 @@ class NonDeltaTextInputService extends TextInputService with TextInputClient {
     TextInputConfiguration configuration,
   ) {
     final formattedValue = textEditingValue.format();
-    if (!formattedValue.isValid() ||
-        currentTextEditingValue == formattedValue) {
+    if (!formattedValue.isValid()) {
+      return;
+    }
+    if (currentTextEditingValue == formattedValue) {
       return;
     }
 
@@ -99,13 +101,18 @@ class NonDeltaTextInputService extends TextInputService with TextInputClient {
   @override
   void updateEditingValue(TextEditingValue value) {
     if (currentTextEditingValue == value) {
+      // When iOS stops dictation, it performs a delete-then-reinsert
+      // recomposition: first it sends a deletion, then re-sends the original
+      // text. If the original text matches currentTextEditingValue (because
+      // the debounce hasn't fired yet), we must cancel the pending debounce
+      // to prevent the stale deletion from being applied to the document.
+      if (Debounce.hasPending(debounceKey)) {
+        Debounce.cancel(debounceKey);
+      }
       return;
     }
 
     if (PlatformExtension.isIOS && _isFloatingCursorVisible) {
-      // on iOS, when using gesture to move cursor, this function will be called
-      // which may cause the unneeded delta being applied
-      // so we ignore the updateEditingValue event when the floating cursor is visible
       AppFlowyEditorLog.editor.debug(
         'ignore updateEditingValue event when the floating cursor is visible',
       );
@@ -128,7 +135,16 @@ class NonDeltaTextInputService extends TextInputService with TextInputClient {
   }
 
   @override
+  void flushPendingDeltas() {
+    Debounce.flush(debounceKey);
+  }
+
+  @override
   void close() {
+    // Flush pending debounced deltas before closing to prevent text loss
+    // when the user taps away or the editor loses focus.
+    flushPendingDeltas();
+
     keepEditorFocusNotifier.reset();
     currentTextEditingValue = null;
     composingTextRange = null;
@@ -145,7 +161,14 @@ class NonDeltaTextInputService extends TextInputService with TextInputClient {
   }
 
   @override
-  void connectionClosed() {}
+  void connectionClosed() {
+    // iOS may close the connection when switching keyboard modes (e.g.
+    // dictation → regular keyboard). Flush pending deltas so any text
+    // still in the debounce buffer is applied to the document before the
+    // connection is lost.
+    flushPendingDeltas();
+    _textInputConnection = null;
+  }
 
   @override
   void insertTextPlaceholder(Size size) {}

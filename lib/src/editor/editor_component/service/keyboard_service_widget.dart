@@ -44,6 +44,10 @@ class KeyboardServiceWidgetState extends State<KeyboardServiceWidget>
   // use for IME only
   bool enableShortcuts = true;
 
+  // Re-entrancy guard for _attachTextInputService.
+  // Prevents double setEditingState when flush triggers nested selection changes.
+  bool _isAttaching = false;
+
   @override
   void initState() {
     super.initState();
@@ -186,22 +190,25 @@ class KeyboardServiceWidgetState extends State<KeyboardServiceWidget>
 
     // attach the delta text input service if needed
     final selection = editorState.selection;
-
-    // if (PlatformExtension.isMobile && previousSelection == selection) {
-    //   // no need to attach the text input service if the selection is not changed.
-    //   return;
-    // }
+    final reason = editorState.selectionUpdateReason;
 
     enableShortcuts = true;
 
     if (selection == null) {
       textInputService.close();
     } else {
-      // For the deletion, we should attach the text input service immediately.
-      _attachTextInputService(selection);
+      // Only skip re-attachment for UI events (touch gestures) that
+      // re-notify the same selection. For transaction/IME events (e.g.
+      // composition end from dictation), always re-attach so iOS receives
+      // the setEditingState that acknowledges the committed text.
+      final selChanged = previousSelection != selection;
+      final isUiEvent = reason == SelectionUpdateReason.uiEvent;
+      if (selChanged || !isUiEvent) {
+        _attachTextInputService(selection);
+      }
       _updateCaretPosition(selection);
 
-      if (editorState.selectionUpdateReason == SelectionUpdateReason.uiEvent) {
+      if (isUiEvent) {
         focusNode.requestFocus();
         AppFlowyEditorLog.editor.debug('keyboard service - request focus');
       } else {
@@ -215,24 +222,49 @@ class KeyboardServiceWidgetState extends State<KeyboardServiceWidget>
   }
 
   void _attachTextInputService(Selection selection) {
-    final textEditingValue = _getCurrentTextEditingValue(selection);
-    if (textEditingValue != null) {
-      textInputService.attach(
-        textEditingValue,
-        TextInputConfiguration(
-          enableDeltaModel: false,
-          inputType: TextInputType.multiline,
-          textCapitalization: TextCapitalization.sentences,
-          inputAction: TextInputAction.newline,
-          keyboardAppearance: Theme.of(context).brightness,
-          allowedMimeTypes:
-              widget.contentInsertionConfiguration?.allowedMimeTypes ?? [],
-        ),
-      );
-      // disable shortcuts when the IME active
-      enableShortcuts = textEditingValue.composing == TextRange.empty;
-    } else {
-      enableShortcuts = true;
+    // Re-entrancy guard: flushPendingDeltas() can trigger
+    // editorState.apply() → _onSelectionChanged() → _attachTextInputService()
+    // recursively. The inner call would handle attachment correctly; the outer
+    // call should not proceed with a stale selection parameter afterward.
+    if (_isAttaching) {
+      return;
+    }
+    _isAttaching = true;
+
+    try {
+      // Flush pending debounced deltas so the document is up-to-date
+      // before we reconstruct the TextEditingValue from it.
+      // Without this, voice dictation text vanishes when composition ends
+      // because _getCurrentTextEditingValue reads stale document state.
+      textInputService.flushPendingDeltas();
+
+      // After flush, the selection may have changed (the flush applies
+      // pending text which updates the editor selection). Always use the
+      // current selection instead of the (potentially stale) parameter.
+      final currentSelection = editorState.selection;
+      if (currentSelection == null) return;
+
+      final textEditingValue = _getCurrentTextEditingValue(currentSelection);
+      if (textEditingValue != null) {
+        textInputService.attach(
+          textEditingValue,
+          TextInputConfiguration(
+            enableDeltaModel: false,
+            inputType: TextInputType.multiline,
+            textCapitalization: TextCapitalization.sentences,
+            inputAction: TextInputAction.newline,
+            keyboardAppearance: Theme.of(context).brightness,
+            allowedMimeTypes:
+                widget.contentInsertionConfiguration?.allowedMimeTypes ?? [],
+          ),
+        );
+        // disable shortcuts when the IME active
+        enableShortcuts = textEditingValue.composing == TextRange.empty;
+      } else {
+        enableShortcuts = true;
+      }
+    } finally {
+      _isAttaching = false;
     }
   }
 
@@ -285,12 +317,16 @@ class KeyboardServiceWidgetState extends State<KeyboardServiceWidget>
         return;
       }
 
+      // Flush pending text input deltas while the selection is still valid,
+      // before clearing it. Otherwise the flushed handlers would see a null
+      // selection and silently drop the text.
+      textInputService.close();
+
       final children =
           WidgetsBinding.instance.focusManager.primaryFocus?.children;
       if (children != null && !children.contains(focusNode)) {
         editorState.selection = null;
       }
-      textInputService.close();
     }
   }
 
